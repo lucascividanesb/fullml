@@ -18,6 +18,9 @@ RUN npm run build
 # Limpa o diretorio para manter só producao
 RUN npm install --omit=dev
 
+# Cria pasta public (vazia) se ela não existir no projeto, evitando erro no runner
+RUN mkdir -p public
+
 # -----------------
 # Imagem Final (Enxuta)
 # -----------------
