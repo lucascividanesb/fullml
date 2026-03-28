@@ -5,32 +5,23 @@ services:
     build: .
     container_name: magiiv-app
     restart: unless-stopped
-    # ⚠️ A PORTA FOI OCULTADA PRO CADDY APONTAR COM SEGURANÇA SEM VAZAR PRA REDE.
-    expose:
-      - "3000"
+    ports:
+      # Mapeando agora a porta 2020 do seu servidor para a 3000 do App
+      - "2020:3000"
     volumes:
       - magiiv-data:/app/.data
     env_file:
       - .env.production
     environment:
       - NODE_ENV=production
-
-  caddy:
-    image: caddy:2-alpine
-    container_name: caddy-proxy
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy-data:/data
-      - caddy-config:/config
-    depends_on:
-      - magiiv-app
+    labels:
+      - "traefik.enable=true"
+      # Aqui dizemos pro Traefik que o seu domínio aponta para esse App
+      - "traefik.http.routers.magiiv-app.rule=Host(`full.rsconnect.com.br`)"
+      - "traefik.http.routers.magiiv-app.entrypoints=websecure"
+      - "traefik.http.routers.magiiv-app.tls.certresolver=letsencrypt"
+      - "traefik.http.services.magiiv-app.loadbalancer.server.port=3000"
 
 volumes:
   magiiv-data:
     name: magiiv_database_vol
-  caddy-data:
-  caddy-config:
