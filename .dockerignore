@@ -1,0 +1,11 @@
+node_modules
+.next
+.git
+.data
+.env*
+*.md
+coverage
+out
+build
+Dockerfile*
+docker-compose*
