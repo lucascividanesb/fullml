@@ -5,18 +5,32 @@ services:
     build: .
     container_name: magiiv-app
     restart: unless-stopped
-    ports:
-      # Expõe a aplicação na porta 3000 externa (Mude a esquerda se houver conflitos, como "3012:3000")
-      - "3000:3000"
+    # ⚠️ A PORTA FOI OCULTADA PRO CADDY APONTAR COM SEGURANÇA SEM VAZAR PRA REDE.
+    expose:
+      - "3000"
     volumes:
-      # ⚠️ MUITO ÚTIL: Protege seu banco de dados (SQLite) de ser deletado ao atualizar o app
       - magiiv-data:/app/.data
     env_file:
-      # Diz ao docker para ler suas senhas de producao a partir de um arquivo chamado env.production (na VPS)
       - .env.production
     environment:
       - NODE_ENV=production
 
+  caddy:
+    image: caddy:2-alpine
+    container_name: caddy-proxy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - magiiv-app
+
 volumes:
   magiiv-data:
     name: magiiv_database_vol
+  caddy-data:
+  caddy-config:
