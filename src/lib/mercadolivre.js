@@ -51,23 +51,31 @@ export async function exchangeCode(code) {
  * Refresh an expired access token
  */
 export async function refreshToken(refresh_token) {
-  const response = await fetch(ML_TOKEN_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' },
-    body: new URLSearchParams({
-      grant_type: 'refresh_token',
-      client_id: APP_ID,
-      client_secret: APP_SECRET,
-      refresh_token,
-    }),
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000); // 10s timeout
 
-  if (!response.ok) {
-    const err = await response.json();
-    throw new Error(`ML Refresh Error: ${err.message || err.error || response.statusText}`);
+  try {
+    const response = await fetch(ML_TOKEN_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' },
+      body: new URLSearchParams({
+        grant_type: 'refresh_token',
+        client_id: APP_ID,
+        client_secret: APP_SECRET,
+        refresh_token,
+      }),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(`ML Refresh Error (${response.status}): ${err.message || err.error || response.statusText}`);
+    }
+
+    return response.json();
+  } finally {
+    clearTimeout(timeout);
   }
-
-  return response.json();
 }
 
 /**
