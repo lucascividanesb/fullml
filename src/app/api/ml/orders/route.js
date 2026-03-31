@@ -22,9 +22,11 @@ export async function GET(request) {
     if (searchParams.get('date_to')) params['order.date_created.to'] = searchParams.get('date_to');
 
     const orders = await getOrders(tokenData.user_id, tokenData.access_token, params);
+    
+    console.log(`[API:Orders] Chamando ML para Seller ${tokenData.user_id}. Resultados: ${orders.results?.length || 0}`);
 
     logger.info('GET request processed', { 
-      params, 
+      seller_id: tokenData.user_id,
       returnedResults: orders.results?.length || 0,
       total: orders.paging?.total || 0
     });

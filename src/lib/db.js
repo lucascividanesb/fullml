@@ -49,6 +49,49 @@ function initDB() {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (system_user_id) REFERENCES system_users(id) ON DELETE CASCADE
     );
+
+    CREATE TABLE IF NOT EXISTS account_goals (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      ml_account_id TEXT,
+      month TEXT, /* YYYY-MM */
+      target_revenue DECIMAL(10,2),
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(ml_account_id, month),
+      FOREIGN KEY (ml_account_id) REFERENCES ml_accounts(id) ON DELETE CASCADE
+    );
+
+    /* Phase 4: Pricing & Alerts */
+    CREATE TABLE IF NOT EXISTS alert_configs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      ml_account_id TEXT,
+      type TEXT, /* 'stock_min', 'acos_max', 'buybox_loss' */
+      threshold REAL,
+      is_enabled INTEGER DEFAULT 1,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(ml_account_id, type),
+      FOREIGN KEY (ml_account_id) REFERENCES ml_accounts(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS item_configs (
+      id TEXT PRIMARY KEY, /* ml_item_id */
+      ml_account_id TEXT,
+      min_price REAL,
+      max_price REAL,
+      auto_reprice INTEGER DEFAULT 0,
+      custom_stock_min INTEGER,
+      FOREIGN KEY (ml_account_id) REFERENCES ml_accounts(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS notifications (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      ml_account_id TEXT,
+      type TEXT, /* 'danger', 'warning', 'info' */
+      title TEXT,
+      message TEXT,
+      is_read INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (ml_account_id) REFERENCES ml_accounts(id) ON DELETE CASCADE
+    );
   `);
 }
 

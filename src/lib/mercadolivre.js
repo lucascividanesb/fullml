@@ -8,7 +8,7 @@ const ML_AUTH_URL = 'https://auth.mercadolivre.com.br/authorization';
 const ML_TOKEN_URL = `${ML_API_BASE}/oauth/token`;
 
 const APP_ID = process.env.ML_APP_ID;
-const APP_SECRET = process.env.ML_SECRET;
+const APP_SECRET = process.env.ML_CLIENT_SECRET || process.env.ML_SECRET;
 const REDIRECT_URI = process.env.ML_REDIRECT_URI;
 
 /**
@@ -87,7 +87,8 @@ export async function mlFetch(endpoint, accessToken, options = {}) {
 
   if (!response.ok) {
     const err = await response.json().catch(() => ({}));
-    throw new Error(`ML API Error (${response.status}): ${err.message || response.statusText}`);
+    console.error(`[ML-FETCH-ERROR] ${response.status} em ${endpoint}:`, JSON.stringify(err));
+    throw new Error(`ML API Error (${response.status}): ${err.message || err.error || response.statusText}`);
   }
 
   return response.json();
@@ -117,6 +118,18 @@ export async function getMultipleItems(itemIds, accessToken) {
 
 export async function getItemDescription(itemId, accessToken) {
   return mlFetch(`/items/${itemId}/description`, accessToken);
+}
+
+export async function getPriceToWin(itemId, accessToken) {
+  // siteId is usually determined from the user/item, but version v2 is recommended
+  return mlFetch(`/items/${itemId}/price_to_win?version=v2`, accessToken);
+}
+
+export async function updateItemPrice(itemId, newPrice, accessToken) {
+  return mlFetch(`/items/${itemId}`, accessToken, {
+    method: 'PUT',
+    body: JSON.stringify({ price: newPrice })
+  });
 }
 
 // ===== Orders =====

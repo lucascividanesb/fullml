@@ -14,13 +14,32 @@ export default function DashboardHome() {
 
   async function loadDashboard() {
     setLoading(true);
+    setError(''); // Clean error before retry
     try {
+      const currentMonth = new Date().toISOString().slice(0, 7);
+      
+      // We also need the current active account ID from our custom layout context if needed, 
+      // but the API knows it via cookie.
       const [ordersRes, stockRes] = await Promise.all([
         fetch('/api/ml/orders?limit=10').then(r => r.json()),
         fetch('/api/ml/stock').then(r => r.json()),
       ]);
 
-      if (ordersRes.error) throw new Error(ordersRes.error);
+      if (ordersRes.error) {
+        // ML 403 usually happens if the account was disconnected or token doesn't match seller
+        if (ordersRes.error.includes('403') || ordersRes.error.includes('caller.id')) {
+           throw new Error('Acesso negado (403). Por favor, tente reconectar sua conta no menu de Lojas ou trocar de conta ativa.');
+        }
+        throw new Error(ordersRes.error);
+      }
+
+      // Fetch Meta for current month
+      // We rely on the API to give us the goal for the active account
+      const session = await fetch('/api/auth/session').then(r => r.json());
+      const activeAccId = localStorage.getItem('magiiv_active_account') || session.accounts?.[0]?.id;
+      
+      const goalsRes = await fetch(`/api/ml/goals?month=${currentMonth}&accountId=${activeAccId}`).then(r => r.json());
+      const monthGoal = goalsRes[0]?.target_revenue || 0;
 
       const orders = ordersRes.results || [];
       const totalSales = orders.reduce((sum, o) => sum + (o.total_amount || 0), 0);
@@ -33,6 +52,8 @@ export default function DashboardHome() {
         total_items_sold: stockRes.total_items_sold || 0,
         abc_data: stockRes.sales_data || [],
         total_revenue_30d: stockRes.total_revenue || 0,
+        month_goal: monthGoal,
+        pct_completed: monthGoal > 0 ? (stockRes.total_revenue / monthGoal) * 100 : 0
       });
 
       setRecentOrders(orders.slice(0, 8));
@@ -88,8 +109,39 @@ export default function DashboardHome() {
     <div>
       {/* KPI Cards */}
       <div className="kpi-grid mb-lg">
+        {/* Monthly Goal Widget */}
+        <div className="kpi-card glass shadow-lg" style={{ gridColumn: 'span 2', background: 'linear-gradient(135deg, rgba(235,94,67,0.1), rgba(30,187,215,0.1))' }}>
+          <div className="flex justify-between items-center mb-md">
+            <div>
+              <div className="kpi-label" style={{ fontSize: '0.9rem', marginBottom: '4px' }}>Meta de Faturamento (Mensal)</div>
+              <div className="kpi-value text-xl">{formatCurrency(kpis?.total_revenue_30d)} / <span className="text-muted text-lg">{formatCurrency(kpis?.month_goal)}</span></div>
+            </div>
+            <div className="text-right">
+              <div className="kpi-value" style={{ color: 'var(--primary-light)' }}>{kpis?.pct_completed?.toFixed(1)}%</div>
+              <div className="text-xs text-muted">Batimento Atual</div>
+            </div>
+          </div>
+          
+          <div style={{ width: '100%', height: '12px', background: 'rgba(255,255,255,0.1)', borderRadius: '10px', overflow: 'hidden' }}>
+            <div 
+              style={{ 
+                width: `${Math.min(kpis?.pct_completed || 0, 100)}%`, 
+                height: '100%', 
+                background: 'linear-gradient(90deg, var(--primary), var(--accent))',
+                transition: 'width 1.5s ease-in-out',
+                boxShadow: '0 0 15px var(--primary-glow)'
+              }} 
+            />
+          </div>
+          
+          <div className="flex justify-between mt-sm text-xs text-muted">
+            <span>R$ 0,00</span>
+            <span>Meta: {formatCurrency(kpis?.month_goal)}</span>
+          </div>
+        </div>
+
         <div className="kpi-card purple">
-          <div className="kpi-icon" style={{ background: 'rgba(108,92,231,0.15)', color: 'var(--primary-light)' }}>
+          <div className="kpi-icon" style={{ background: 'rgba(235,94,67,0.15)', color: 'var(--primary-light)' }}>
             💰
           </div>
           <div className="kpi-label">Receita (30 dias)</div>
@@ -98,7 +150,7 @@ export default function DashboardHome() {
         </div>
 
         <div className="kpi-card teal">
-          <div className="kpi-icon" style={{ background: 'rgba(0,210,211,0.15)', color: 'var(--accent)' }}>
+          <div className="kpi-icon" style={{ background: 'rgba(30,187,215,0.15)', color: 'var(--accent)' }}>
             🛒
           </div>
           <div className="kpi-label">Pedidos Totais</div>

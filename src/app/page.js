@@ -15,23 +15,21 @@ export default function LoginPage() {
     <div className="login-page">
       <div className="login-card">
         <div style={{ marginBottom: '24px' }}>
-          <svg width="56" height="56" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg" className="login-logo">
-            <rect width="56" height="56" rx="16" fill="url(#grad)" />
-            <text x="28" y="36" textAnchor="middle" fill="white" fontWeight="800" fontSize="20" fontFamily="Inter, sans-serif">M</text>
-            <defs>
-              <linearGradient id="grad" x1="0" y1="0" x2="56" y2="56">
-                <stop stopColor="#6C5CE7" />
-                <stop offset="1" stopColor="#00D2D3" />
-              </linearGradient>
-            </defs>
+          <svg width="64" height="64" viewBox="0 0 32 32" style={{ borderRadius: '12px' }}>
+            <rect width="32" height="32" fill="#EB5E43" />
+            <path d="M8 24C8 17.3726 13.3726 12 20 12" stroke="white" strokeWidth="3" strokeLinecap="round" fill="none" />
+            <path d="M8 24C8 20.6863 10.6863 18 14 18" stroke="white" strokeWidth="3" strokeLinecap="round" fill="none" />
+            <circle cx="8" cy="24" r="2" fill="white" />
           </svg>
         </div>
 
-        <h1 className="login-title">MAGIIV</h1>
+        <h1 className="login-title" style={{ display: 'flex', alignItems: 'baseline', gap: '4px', justifyContent: 'center' }}>
+          RS <span style={{ color: '#EB5E43', fontSize: '1.5rem', fontWeight: 400 }}>connect</span>
+        </h1>
         <p className="login-subtitle">
-          Hub de Integração Mercado Livre
+          Hub de Integração Full - RS Connect
           <br />
-          Gestão inteligente de estoque Full, envios e relatórios
+          Gestão inteligente de estoque Full, envios e faturamento
         </p>
 
         {error && (

@@ -16,6 +16,10 @@ const NAV_ITEMS = [
     { key: 'estoque', label: 'Gestão de Estoque', icon: '📦', path: '/dashboard/estoque' },
     { key: 'envios', label: 'Geração de Envios', icon: '🚚', path: '/dashboard/envios' },
   ]},
+  { section: 'Inteligência', items: [
+    { key: 'precos', label: 'Preços & Concorrência', icon: '🏷️', path: '/dashboard/precos' },
+    { key: 'alertas', label: 'Central de Alertas', icon: '🔔', path: '/dashboard/alertas' },
+  ]},
   { section: 'Relatórios', items: [
     { key: 'ruptura', label: 'Ruptura', icon: '🔴', path: '/dashboard/relatorios/ruptura' },
     { key: 'cobertura', label: 'Cobertura', icon: '🟢', path: '/dashboard/relatorios/cobertura' },
@@ -29,6 +33,7 @@ const NAV_ITEMS = [
   { section: 'Integrações', items: [
     { key: 'erp', label: 'ERP', icon: '🔗', path: '/dashboard/erp' },
     { key: 'config', label: 'Configurações', icon: '⚙️', path: '/dashboard/config' },
+    { key: 'metas', label: 'Metas Mensais', icon: '🎯', path: '/dashboard/config/metas' },
   ]},
 ];
 
@@ -36,6 +41,7 @@ export default function DashboardLayout({ children }) {
   const [user, setUser] = useState(null);
   const [accounts, setAccounts] = useState([]);
   const [activeAccountId, setActiveAccountId] = useState(null);
+  const [notifications, setNotifications] = useState({ notifications: [], unread_count: 0 });
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [customLogo, setCustomLogo] = useState(null);
   const router = useRouter();
@@ -72,11 +78,22 @@ export default function DashboardLayout({ children }) {
     };
     
     fetchSession();
+    // Load notifications periodically or on mount
+    loadNotifications();
 
     // Load custom logo from localStorage
     const savedLogo = localStorage.getItem('magiiv_custom_logo');
     if (savedLogo) setCustomLogo(savedLogo);
   }, [router]);
+
+  async function loadNotifications() {
+    try {
+      const res = await fetch('/api/ml/notifications');
+      if (res.ok) {
+        setNotifications(await res.json());
+      }
+    } catch (e) {}
+  }
 
   // Sync active account to localStorage and Cookie (for SSR/API calls)
   useEffect(() => {
@@ -108,7 +125,17 @@ export default function DashboardLayout({ children }) {
   };
 
   return (
-    <DashboardContext.Provider value={{ user, accounts, activeAccount, activeAccountId, setActiveAccountId, customLogo, setCustomLogo }}>
+    <DashboardContext.Provider value={{ 
+      user, 
+      accounts, 
+      activeAccount, 
+      activeAccountId, 
+      setActiveAccountId, 
+      notifications, 
+      loadNotifications, 
+      customLogo, 
+      setCustomLogo 
+    }}>
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div 
@@ -123,22 +150,27 @@ export default function DashboardLayout({ children }) {
 
       {/* Sidebar */}
       <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
-        <div className="sidebar-header">
+        <div className="sidebar-header" style={{ borderBottom: '1.5px solid var(--border)' }}>
           {customLogo ? (
-            <img src={customLogo} alt="Logo" className="sidebar-logo" />
+            <img src={customLogo} alt="Logo" className="sidebar-logo" style={{ height: '32px' }} />
           ) : (
-            <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
-              <rect width="36" height="36" rx="10" fill="url(#sgr)" />
-              <text x="18" y="24" textAnchor="middle" fill="white" fontWeight="800" fontSize="14" fontFamily="Inter">M</text>
-              <defs>
-                <linearGradient id="sgr" x1="0" y1="0" x2="36" y2="36">
-                  <stop stopColor="#6C5CE7" />
-                  <stop offset="1" stopColor="#00D2D3" />
-                </linearGradient>
-              </defs>
-            </svg>
+            <div className="flex items-center gap-sm">
+              <svg width="32" height="32" viewBox="0 0 32 32" style={{ borderRadius: '6px' }}>
+                <rect width="32" height="32" fill="#EB5E43" />
+                <path d="M8 24C8 17.3726 13.3726 12 20 12" stroke="white" strokeWidth="3" strokeLinecap="round" fill="none" />
+                <path d="M8 24C8 20.6863 10.6863 18 14 18" stroke="white" strokeWidth="3" strokeLinecap="round" fill="none" />
+                <circle cx="8" cy="24" r="2" fill="white" />
+              </svg>
+              <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
+                <span style={{ fontSize: '1.3rem', fontWeight: 800, color: 'white', letterSpacing: '-0.5px' }}>
+                  RS
+                </span>
+                <span style={{ fontSize: '0.75rem', fontWeight: 400, color: '#EB5E43', textTransform: 'lowercase', marginTop: '-2px' }}>
+                  connect
+                </span>
+              </div>
+            </div>
           )}
-          <span className="sidebar-brand">MAGIIV</span>
         </div>
 
         <nav className="sidebar-nav">
@@ -199,7 +231,21 @@ export default function DashboardLayout({ children }) {
             </button>
             <h1 className="content-header-title">{getPageTitle()}</h1>
           </div>
-          <div className="content-header-actions" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div className="content-header-actions" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            
+            {/* Notification Bell */}
+            <div style={{ position: 'relative', cursor: 'pointer' }} onClick={() => router.push('/dashboard/alertas')}>
+              <span style={{ fontSize: '1.4rem' }}>🔔</span>
+              {notifications.unread_count > 0 && (
+                <span className="badge badge-danger" style={{ 
+                  position: 'absolute', top: '-5px', right: '-5px', 
+                  padding: '2px 5px', fontSize: '0.65rem', borderRadius: '50%' 
+                }}>
+                  {notifications.unread_count}
+                </span>
+              )}
+            </div>
+
             {accounts.length > 0 && (
               <select 
                 className="select select-sm select-bordered" 

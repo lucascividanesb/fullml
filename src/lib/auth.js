@@ -136,11 +136,42 @@ export async function getToken() {
   
   let targetAccount = accounts[0];
   if (activeAccountId) {
-    const matched = accounts.find(a => a.id === activeAccountId);
+    const matched = accounts.find(a => String(a.id) === String(activeAccountId));
     if (matched) targetAccount = matched;
   }
   
+  console.log(`[AUTH] Solicitando token para Seller ID: ${targetAccount.id} (${targetAccount.nickname})`);
+  
   const tokens = await getAccountTokens(targetAccount.id);
+  
+  // Auto-refresh logic (Phase 3/4 Fix)
+  if (isTokenExpired(tokens.token_expires_at)) {
+    console.log(`[AUTH] Token expirado para ${targetAccount.id}. Tentando refresh...`);
+    try {
+      const { refreshToken: mlRefresh } = await import('./mercadolivre');
+      const newTokens = await mlRefresh(tokens.refresh_token);
+      
+      const expiresAt = Date.now() + (newTokens.expires_in * 1000);
+      
+      db.prepare(`
+        UPDATE ml_accounts 
+        SET access_token = ?, refresh_token = ?, token_expires_at = ?
+        WHERE id = ?
+      `).run(newTokens.access_token, newTokens.refresh_token, expiresAt, targetAccount.id);
+      
+      console.log(`[AUTH] Token renovado com sucesso para ${targetAccount.id}. Novo exp em: ${new Date(expiresAt).toLocaleString()}`);
+      
+      return {
+        access_token: newTokens.access_token,
+        refresh_token: newTokens.refresh_token,
+        expires_at: expiresAt,
+        user_id: targetAccount.id
+      };
+    } catch (err) {
+      console.error(`[AUTH] ERRO no refresh de token para ${targetAccount.id}:`, err.message);
+      // Return old tokens as fallback, but future calls will likely fail 401/403
+    }
+  }
   
   return {
     access_token: tokens.access_token,

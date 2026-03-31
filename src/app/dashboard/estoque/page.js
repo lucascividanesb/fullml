@@ -149,65 +149,70 @@ export default function EstoquePage() {
               <th>ABC</th>
               <th>Estoque</th>
               <th>Vendas (30d)</th>
-              <th>Média/Dia</th>
+              <th>Dimensões (Vol)</th>
               <th>Cobertura</th>
               <th>Enviar</th>
               <th>Status</th>
             </tr>
           </thead>
           <tbody>
-            {filteredItems.map((item) => (
-              <tr key={item.id}>
-                <td className="truncate" style={{ maxWidth: '250px' }}>
-                  <div className="flex items-center gap-sm">
-                    {item.thumbnail && (
-                      <img 
-                        src={item.thumbnail} 
-                        alt="" 
-                        style={{ 
-                          width: 32, height: 32, borderRadius: 6, objectFit: 'cover',
-                          border: '1px solid var(--border)' 
-                        }} 
-                      />
+            {filteredItems.map((item) => {
+              const getAttr = (id) => item.attributes?.find(a => a.id === id)?.value_name || '—';
+              const volString = `${getAttr('PACKAGE_HEIGHT')}x${getAttr('PACKAGE_WIDTH')}x${getAttr('PACKAGE_LENGTH')} cm (${getAttr('PACKAGE_WEIGHT')}g)`;
+              
+              return (
+                <tr key={item.id}>
+                  <td className="truncate" style={{ maxWidth: '250px' }}>
+                    <div className="flex items-center gap-sm">
+                      {item.thumbnail && (
+                        <img 
+                          src={item.thumbnail} 
+                          alt="" 
+                          style={{ 
+                            width: 32, height: 32, borderRadius: 6, objectFit: 'cover',
+                            border: '1px solid var(--border)' 
+                          }} 
+                        />
+                      )}
+                      <span>{item.title}</span>
+                    </div>
+                  </td>
+                  <td className="text-muted text-xs">{item.id}</td>
+                  <td>
+                    <span className={`badge ${
+                      item.abc_class === 'A' ? 'badge-success' :
+                      item.abc_class === 'B' ? 'badge-warning' : 'badge-info'
+                    }`}>
+                      {item.abc_class}
+                    </span>
+                  </td>
+                  <td className="font-semibold">{item.available_quantity}</td>
+                  <td>{item.sold_qty_30d}</td>
+                  <td className="text-xs text-muted">{volString}</td>
+                  <td>
+                    <span className={`badge ${
+                      item.coverage_days === 999 ? 'badge-info' :
+                      item.coverage_days < 5 ? 'badge-danger' :
+                      item.coverage_days < targetDays ? 'badge-warning' : 'badge-success'
+                    }`}>
+                      {item.coverage_days === 999 ? '∞' : `${item.coverage_days}d`}
+                    </span>
+                  </td>
+                  <td className="font-bold" style={{ color: item.qty_to_send > 0 ? 'var(--warning)' : 'var(--text-muted)' }}>
+                    {item.qty_to_send > 0 ? `+${item.qty_to_send}` : '—'}
+                  </td>
+                  <td>
+                    {item.available_quantity === 0 && item.daily_avg > 0 ? (
+                      <span className="badge badge-danger">🔴 Ruptura</span>
+                    ) : item.needs_replenishment ? (
+                      <span className="badge badge-warning">⚠️ Repor</span>
+                    ) : (
+                      <span className="badge badge-success">✅ OK</span>
                     )}
-                    <span>{item.title}</span>
-                  </div>
-                </td>
-                <td className="text-muted text-xs">{item.id}</td>
-                <td>
-                  <span className={`badge ${
-                    item.abc_class === 'A' ? 'badge-success' :
-                    item.abc_class === 'B' ? 'badge-warning' : 'badge-info'
-                  }`}>
-                    {item.abc_class}
-                  </span>
-                </td>
-                <td className="font-semibold">{item.available_quantity}</td>
-                <td>{item.sold_qty_30d}</td>
-                <td>{item.daily_avg.toFixed(1)}</td>
-                <td>
-                  <span className={`badge ${
-                    item.coverage_days === 999 ? 'badge-info' :
-                    item.coverage_days < 5 ? 'badge-danger' :
-                    item.coverage_days < targetDays ? 'badge-warning' : 'badge-success'
-                  }`}>
-                    {item.coverage_days === 999 ? '∞' : `${item.coverage_days}d`}
-                  </span>
-                </td>
-                <td className="font-bold" style={{ color: item.qty_to_send > 0 ? 'var(--warning)' : 'var(--text-muted)' }}>
-                  {item.qty_to_send > 0 ? `+${item.qty_to_send}` : '—'}
-                </td>
-                <td>
-                  {item.available_quantity === 0 && item.daily_avg > 0 ? (
-                    <span className="badge badge-danger">🔴 Ruptura</span>
-                  ) : item.needs_replenishment ? (
-                    <span className="badge badge-warning">⚠️ Repor</span>
-                  ) : (
-                    <span className="badge badge-success">✅ OK</span>
-                  )}
-                </td>
-              </tr>
-            ))}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
