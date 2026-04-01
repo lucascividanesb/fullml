@@ -1,27 +1,29 @@
-version: '3.8'
+# ============================================
+#  RS Connect - Docker Compose
+#  Usado pelo Hostinger Docker Manager
+# ============================================
 
 services:
-  magiiv-app:
+  rsconnect-app:
     build: .
-    container_name: magiiv-app
+    container_name: rsconnect-app
     restart: unless-stopped
     ports:
-      # Mapeando agora a porta 2020 do seu servidor para a 3000 do App
       - "2020:3000"
     volumes:
-      - magiiv-data:/app/.data
-    env_file:
-      - .env.production
+      # Persiste o banco SQLite entre rebuilds
+      - rsconnect-data:/app/.data
     environment:
       - NODE_ENV=production
+      # As variáveis ML_APP_ID, ML_CLIENT_SECRET, ML_REDIRECT_URI e BASE_URL
+      # devem ser configuradas no painel da Hostinger (Gerenciador Docker > Variáveis de Ambiente)
     labels:
       - "traefik.enable=true"
-      # Aqui dizemos pro Traefik que o seu domínio aponta para esse App
-      - "traefik.http.routers.magiiv-app.rule=Host(`full.rsconnect.com.br`)"
-      - "traefik.http.routers.magiiv-app.entrypoints=websecure"
-      - "traefik.http.routers.magiiv-app.tls.certresolver=letsencrypt"
-      - "traefik.http.services.magiiv-app.loadbalancer.server.port=3000"
+      - "traefik.http.routers.rsconnect.rule=Host(`full.rsconnect.com.br`)"
+      - "traefik.http.routers.rsconnect.entrypoints=websecure"
+      - "traefik.http.routers.rsconnect.tls.certresolver=letsencrypt"
+      - "traefik.http.services.rsconnect.loadbalancer.server.port=3000"
 
 volumes:
-  magiiv-data:
-    name: magiiv_database_vol
+  rsconnect-data:
+    name: rsconnect_database_vol

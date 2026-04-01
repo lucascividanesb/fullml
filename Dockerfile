@@ -1,54 +1,55 @@
-# Usa a versão Bookworm Slim do Node 20 por ser super estável 
-# com pacotes C++ necessarios pelo 'better-sqlite3'
+# ============================================
+#  RS Connect - Dockerfile de Produção
+#  GitHub → Hostinger Docker Manager → Auto-Deploy
+# ============================================
+
+# --- STAGE 1: Builder ---
 FROM node:20-bookworm-slim AS builder
 
 WORKDIR /app
 
-# Instala ferramentas essenciais para compilar o SQLite (caso precise)
+# Dependências de compilação C++ (necessário para better-sqlite3)
 RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt/lists/*
 
 COPY package*.json ./
-RUN npm install
+RUN npm ci
 
 COPY . .
 
-# Faz a build otimizada da aplicação Next.js
+# Build otimizado da aplicação Next.js
 RUN npm run build
 
-# Limpa o diretorio para manter só producao
-RUN npm install --omit=dev
-
-# Cria pasta public (vazia) se ela não existir no projeto, evitando erro no runner
-RUN mkdir -p public
-
-# -----------------
-# Imagem Final (Enxuta)
-# -----------------
+# --- STAGE 2: Runner (Imagem Final Enxuta) ---
 FROM node:20-bookworm-slim AS runner
 
 WORKDIR /app
 
-# Variáveis do sistema do container
+# Recompila apenas dependências nativas na imagem final para evitar
+# incompatibilidade de binários entre stages
+RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt/lists/*
+
+# Variáveis fixas do container (as demais vêm pelo painel da Hostinger)
 ENV NODE_ENV=production
 ENV PORT=3000
-
-# Usado pela API para forçar a URL em redirecionamentos, se a variavel externa falhar.
 ENV HOSTNAME="0.0.0.0"
 
-COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/node_modules ./node_modules
+# Copia apenas o necessário do builder
+COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/public ./public
-# Copia a pasta de src caso haja referências (O Next carrega pela .next, mas por segurança mantemos configs na raiz)
-COPY --from=builder /app/next.config.js ./next.config.js* 
-COPY --from=builder /app/jsconfig.json ./jsconfig.json*
+COPY --from=builder /app/next.config.js ./next.config.js
+COPY --from=builder /app/jsconfig.json ./jsconfig.json
+COPY --from=builder /app/node_modules ./node_modules
 
-# Garante a existência do diretório do Banco de Dados SQLite com as devidas permissões
+# Pasta public (mesmo vazia, Next.js espera ela)
+RUN mkdir -p public
+
+# Diretório do Banco de Dados SQLite (persistido via Volume)
 RUN mkdir -p /app/.data && chown -R node:node /app/.data
 
-# Baixa privilégios (Boa prática de segurança da Docker)
+# Segurança: roda como usuário não-root
 USER node
 
 EXPOSE 3000
 
+# Comando de inicialização (next start)
 CMD ["npm", "start"]

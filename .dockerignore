@@ -1,11 +1,27 @@
+# Dependências (serão instaladas no build)
 node_modules
+
+# Build anterior
 .next
-.git
-.data
-.env*
-*.md
-coverage
 out
 build
+
+# Git
+.git
+.gitignore
+
+# Dados locais (banco é persistido via Volume)
+.data
+
+# Variáveis de ambiente (configuradas no painel da Hostinger)
+.env*
+
+# Docs e configs desnecessárias
+*.md
+coverage
+*.pem
+.DS_Store
+
+# O próprio Dockerfile não precisa ser copiado para dentro
 Dockerfile*
 docker-compose*
